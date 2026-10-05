@@ -1,7 +1,7 @@
 import { useState } from "react"
 import "../styles/taskCreationUI.css"
 
-function TaskCreationUI() {
+function TaskCreationUI({ onClose }) {
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
 
@@ -24,6 +24,7 @@ function TaskCreationUI() {
                 <input type="text" placeholder="Task description" value={description} onChange={(e) => setDescription(e.target.value)} />
 
                 <button type="submit">Create Task</button>
+                <button type="button" onClick={onClose}>Cancel</button>
             </form>
         </div>
     );
