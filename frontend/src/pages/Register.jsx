@@ -1,49 +1,48 @@
 import { useState } from "react"
 import "../styles/loginPage.css"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import api from "../api"
 
 function Register() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [alertError, setAlertError] = useState("");
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
 
     async function handleSubmit(e) {
         e.preventDefault();
 
-        if (!username || !password || !confirmPassword) {
-            setAlertError("empty");
+        if (!username.trim() || !password || !confirmPassword) {
+            setError("Please fill in all fields.");
             return;
         }
 
         if (password.length < 6) {
-            setAlertError("passwordError");
+            setError("Password must be at least 6 characters.");
             return;
         }
 
         if (password !== confirmPassword) {
-            setAlertError("passwordMismatch");
+            setError("Passwords do not match.");
             return;
         }
 
-        const response = await fetch("http://localhost:5000/api/register", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username,
-                password
-            })
-        });
+        setError("");
+        setSubmitting(true);
 
-        const data = await response.json();
-        if (response.ok) {
-            navigate("/login")
+        try {
+            await api.post("/register", {
+                username: username.trim(),
+                password,
+            });
+            navigate("/login", { state: { message: "Account created. Please log in." } });
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : "Unable to create your account.");
+        } finally {
+            setSubmitting(false);
         }
-
-        setAlertError("")
     }
 
 
@@ -52,31 +51,29 @@ function Register() {
             <form className="registerForm" onSubmit={handleSubmit}>
                 <h2>Create Account</h2>
 
-                <label>Username</label>
-                <input type="text" value={username} placeholder="Enter your username" onChange={(e) => setUsername(e.target.value)} />
+                <label htmlFor="register-username">Username</label>
+                <input id="register-username" type="text" autoComplete="username" value={username} placeholder="Enter your username" onChange={(e) => setUsername(e.target.value)} />
 
-                <label>Password</label>
-                <input type="password" value={password} placeholder="Enter your password" onChange={(e) => setPassword(e.target.value)} />
+                <label htmlFor="register-password">Password</label>
+                <input id="register-password" type="password" autoComplete="new-password" value={password} placeholder="Enter your password" onChange={(e) => setPassword(e.target.value)} />
 
-                <label>Confirm Password</label>
-                <input type="password" value={confirmPassword} placeholder="Confirm your password" onChange={(e) => setConfirmPassword(e.target.value)} />
+                <label htmlFor="confirm-password">Confirm Password</label>
+                <input id="confirm-password" type="password" autoComplete="new-password" value={confirmPassword} placeholder="Confirm your password" onChange={(e) => setConfirmPassword(e.target.value)} />
 
-                {alertError && (
+                {error && (
                     <h2
                         style={{
                             color: "red",
                             fontSize: "12px"
                         }}
                     >
-                        {alertError === "empty" && "Please fill in the missing fields!"}
-                        {alertError === "passwordError" && "Password must be at least 6 characters."}
-                        {alertError === "passwordMismatch" && "Passwords do not match."}
+                        {error}
                     </h2>
                 )}
 
-                <button type="submit">Register</button>
+                <button type="submit" disabled={submitting}>{submitting ? "Registering..." : "Register"}</button>
 
-                <p>Already have an account?{" "}<a href="/login">Login</a></p>
+                <p>Already have an account?{" "}<Link to="/login">Login</Link></p>
             </form>
         </div>
     );

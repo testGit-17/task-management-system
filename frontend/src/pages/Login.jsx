@@ -1,41 +1,46 @@
 import { useState } from "react"
 import "../styles/loginPage.css"
-import { useNavigate } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
+import api from "../api"
 
 function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [alertError, setAlertError] = useState("");
+    const [error, setError] = useState("");
+    const [submitting, setSubmitting] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const registrationMessage = location.state?.message;
 
     async function handleSubmit(e) {
         e.preventDefault();
 
-        if (!username || !password) {
-            setAlertError("empty");
+        if (!username.trim() || !password) {
+            setError("Please enter your username and password.");
             return;
         }
 
-        const response = await fetch("http://localhost:5000/api/login", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                username,
-                password
-            })
-        });
+        setError("");
+        setSubmitting(true);
 
-        const data = await response.json();
-        if (response.ok) {
-            navigate("/tasks")
-            localStorage.setItem("token", data.data.token)
-            setAlertError("")
-        } else {
-            setAlertError("invalid")
+        try {
+            const result = await api.post("/login", {
+                username: username.trim(),
+                password,
+            });
+            const token = result?.data?.token ?? result?.token;
+
+            if (typeof token !== "string" || !token) {
+                throw new Error("The server did not return an authentication token.");
+            }
+
+            localStorage.setItem("token", token);
+            navigate(location.state?.from?.pathname || "/tasks", { replace: true });
+        } catch (requestError) {
+            setError(requestError instanceof Error ? requestError.message : "Unable to log in.");
+        } finally {
+            setSubmitting(false);
         }
-
     }
 
 
@@ -44,27 +49,28 @@ function Login() {
             <form className="registerForm" onSubmit={handleSubmit}>
                 <h2>Login</h2>
 
-                <label>Username</label>
-                <input type="text" value={username} placeholder="Enter your username" onChange={(e) => setUsername(e.target.value)} />
+                <label htmlFor="login-username">Username</label>
+                <input id="login-username" type="text" autoComplete="username" value={username} placeholder="Enter your username" onChange={(e) => setUsername(e.target.value)} />
 
-                <label>Password</label>
-                <input type="password" value={password} placeholder="Enter your password" onChange={(e) => setPassword(e.target.value)} />
+                <label htmlFor="login-password">Password</label>
+                <input id="login-password" type="password" autoComplete="current-password" value={password} placeholder="Enter your password" onChange={(e) => setPassword(e.target.value)} />
 
-                {alertError && (
+                {registrationMessage && <p role="status">{registrationMessage}</p>}
+
+                {error && (
                     <h2
                         style={{
                             color: "red",
                             fontSize: "12px"
                         }}
                     >
-                        {alertError === "empty" && "Please fill in the missing fields!"}
-                        {alertError === "invalid" && "Invalid username or password!"}
+                        {error}
                     </h2>
                 )}
 
-                <button type="submit">Login</button>
+                <button type="submit" disabled={submitting}>{submitting ? "Logging in..." : "Login"}</button>
 
-                <p>Don't have an account?{" "}<a href="/register">Sign Up</a></p>
+                <p>Don't have an account?{" "}<Link to="/register">Sign Up</Link></p>
             </form>
         </div>
     );
