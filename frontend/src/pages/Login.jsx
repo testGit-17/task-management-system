@@ -1,20 +1,41 @@
 import { useState } from "react"
 import "../styles/loginPage.css"
+import { useNavigate } from "react-router-dom"
 
 function Login() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [alertError, setAlertError] = useState("");
+    const navigate = useNavigate();
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
 
-        if (!username || !password || !confirmPassword) {
+        if (!username || !password) {
             setAlertError("empty");
             return;
         }
 
-        setAlertError("")
+        const response = await fetch("http://localhost:5000/api/login", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            navigate("/tasks")
+            localStorage.setItem("token", data.data.token)
+            setAlertError("")
+        } else {
+            setAlertError("invalid")
+        }
+
     }
 
 

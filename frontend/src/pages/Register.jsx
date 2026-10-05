@@ -1,13 +1,15 @@
 import { useState } from "react"
 import "../styles/loginPage.css"
+import { useNavigate } from "react-router-dom"
 
 function Register() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [alertError, setAlertError] = useState("");
+    const navigate = useNavigate();
 
-    function handleSubmit(e) {
+    async function handleSubmit(e) {
         e.preventDefault();
 
         if (!username || !password || !confirmPassword) {
@@ -23,6 +25,22 @@ function Register() {
         if (password !== confirmPassword) {
             setAlertError("passwordMismatch");
             return;
+        }
+
+        const response = await fetch("http://localhost:5000/api/register", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                username,
+                password
+            })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            navigate("/login")
         }
 
         setAlertError("")
